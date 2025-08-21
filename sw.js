@@ -2,9 +2,14 @@ const CACHE_NAME = 'comic-reader-v1';
 const urlsToCache = [
   '/',
   '/index.html',
+  '/index-mobile.html',
   '/assets/styles/style.css',
   '/src/app.js',
   '/src/api-client.js',
+  '/src/catalog-manager.js',
+  '/catalog/catalog.json',
+  '/catalog/perdido.pdf',
+  '/manifest.json',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js',
   'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js'
 ];

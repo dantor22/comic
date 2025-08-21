@@ -353,6 +353,14 @@ class ComicReader {
     }
 }
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     window.comicReader = new ComicReader();
+    
+    // Load default PDF from catalog if available
+    if (window.catalogManager) {
+        const defaultComic = await window.catalogManager.loadDefaultComic();
+        if (defaultComic) {
+            await window.comicReader.loadPDFFromData(defaultComic);
+        }
+    }
 });

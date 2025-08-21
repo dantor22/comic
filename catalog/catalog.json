@@ -1,0 +1,16 @@
+{
+  "comics": [
+    {
+      "id": "perdido",
+      "title": "Perdido",
+      "filename": "perdido.pdf",
+      "description": "Comic predeterminado",
+      "author": "",
+      "pages": 0,
+      "cover": "/catalog/covers/perdido.jpg",
+      "isDefault": true
+    }
+  ],
+  "version": "1.0",
+  "lastUpdated": "2025-08-21"
+}

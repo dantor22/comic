@@ -110,7 +110,7 @@ class CatalogManager {
                 if (comic && window.comicReader) {
                     await window.comicReader.loadPDFFromData(comic);
                     if (window.comicReader.elements.sidebar) {
-                        window.comicReader.closeSidebarMenu();
+                        window.comicReader.toggleSidebar();
                     }
                 }
             });

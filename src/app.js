@@ -103,18 +103,18 @@ class ComicReader {
                 <span class="comic-item-icon">📖</span>
                 <span class="comic-item-name">${comic.name.replace('.pdf', '')}</span>
             `;
-            comicItem.addEventListener('click', () => this.loadSavedComic(comic));
+            comicItem.addEventListener('click', (e) => this.loadSavedComic(comic, e.currentTarget));
             this.elements.comicsList.appendChild(comicItem);
         });
     }
 
-    async loadSavedComic(comic) {
+    async loadSavedComic(comic, clickedElement = null) {
         // Convertir data de array a Uint8Array
         const comicToLoad = {
             ...comic,
             data: new Uint8Array(comic.data)
         };
-        await this.loadPDFFromData(comicToLoad);
+        await this.loadPDFFromData(comicToLoad, clickedElement);
     }
 
     filterComics(searchTerm) {
@@ -129,7 +129,7 @@ class ComicReader {
         });
     }
 
-    async loadComic(comic) {
+    async loadComic(comic, clickedElement = null) {
         this.currentPDF = comic;
         this.elements.comicTitle.textContent = comic.name.replace('.pdf', '');
         this.elements.welcomeMessage.classList.add('hidden');
@@ -137,7 +137,9 @@ class ComicReader {
         document.querySelectorAll('.comic-item').forEach(item => {
             item.classList.remove('active');
         });
-        event.currentTarget.classList.add('active');
+        if (clickedElement) {
+            clickedElement.classList.add('active');
+        }
 
         try {
             const loadingTask = pdfjsLib.getDocument(comic.path);
@@ -191,10 +193,17 @@ class ComicReader {
         }
     }
 
-    async loadPDFFromData(comic) {
+    async loadPDFFromData(comic, clickedElement = null) {
         this.currentPDF = comic;
         this.elements.comicTitle.textContent = comic.name.replace('.pdf', '');
         this.elements.welcomeMessage.classList.add('hidden');
+        
+        if (clickedElement) {
+            document.querySelectorAll('.comic-item').forEach(item => {
+                item.classList.remove('active');
+            });
+            clickedElement.classList.add('active');
+        }
 
         try {
             const loadingTask = pdfjsLib.getDocument({ data: comic.data });

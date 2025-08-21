@@ -1,16 +1,16 @@
 {
+  "version": "1.0",
+  "name": "Comic Reader Catalog",
+  "description": "Catálogo de historietas disponibles",
   "comics": [
     {
-      "id": "perdido",
+      "id": "perdido-sample",
       "title": "Perdido",
       "filename": "perdido.pdf",
-      "description": "Comic predeterminado",
-      "author": "",
-      "pages": 0,
-      "cover": "/catalog/covers/perdido.jpg",
+      "author": "Autor Ejemplo",
+      "description": "Comic de muestra incluido con la aplicación",
       "isDefault": true
     }
   ],
-  "version": "1.0",
-  "lastUpdated": "2025-08-21"
+  "lastUpdated": "2025-08-21T00:00:00Z"
 }

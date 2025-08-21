@@ -70,12 +70,16 @@ class ComicReader {
     }
 
     async loadAvailableComics() {
-        const demoComics = [
-            { name: 'sample-comic-1.pdf', path: 'assets/comics/sample-comic-1.pdf' },
-            { name: 'sample-comic-2.pdf', path: 'assets/comics/sample-comic-2.pdf' }
-        ];
-
-        this.availableComics = demoComics;
+        // En Netlify no podemos listar archivos del servidor
+        // Los comics se cargan desde archivos locales del usuario
+        this.availableComics = [];
+        
+        // Cargar comics guardados en localStorage
+        const savedComics = localStorage.getItem('savedComics');
+        if (savedComics) {
+            this.availableComics = JSON.parse(savedComics);
+        }
+        
         this.renderComicsList();
     }
 
@@ -99,9 +103,18 @@ class ComicReader {
                 <span class="comic-item-icon">📖</span>
                 <span class="comic-item-name">${comic.name.replace('.pdf', '')}</span>
             `;
-            comicItem.addEventListener('click', () => this.loadComic(comic));
+            comicItem.addEventListener('click', () => this.loadSavedComic(comic));
             this.elements.comicsList.appendChild(comicItem);
         });
+    }
+
+    async loadSavedComic(comic) {
+        // Convertir data de array a Uint8Array
+        const comicToLoad = {
+            ...comic,
+            data: new Uint8Array(comic.data)
+        };
+        await this.loadPDFFromData(comicToLoad);
     }
 
     filterComics(searchTerm) {
@@ -150,13 +163,29 @@ class ComicReader {
                 
                 const newComic = {
                     name: file.name,
-                    data: typedarray
+                    data: Array.from(typedarray), // Convertir a array para localStorage
+                    lastOpened: Date.now()
                 };
                 
-                this.availableComics.push(newComic);
+                // Verificar si ya existe
+                const existingIndex = this.availableComics.findIndex(comic => comic.name === file.name);
+                if (existingIndex >= 0) {
+                    this.availableComics[existingIndex] = newComic;
+                } else {
+                    this.availableComics.push(newComic);
+                }
+                
+                // Guardar en localStorage
+                localStorage.setItem('savedComics', JSON.stringify(this.availableComics));
                 this.renderComicsList();
                 
-                await this.loadPDFFromData(newComic);
+                // Convertir de vuelta a Uint8Array para cargar
+                const comicToLoad = {
+                    ...newComic,
+                    data: new Uint8Array(newComic.data)
+                };
+                
+                await this.loadPDFFromData(comicToLoad);
             };
             fileReader.readAsArrayBuffer(file);
         }

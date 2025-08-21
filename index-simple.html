@@ -1,0 +1,367 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comic Reader - Lector de PDF</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Arial, sans-serif;
+            background: #1a1a1a;
+            color: #e0e0e0;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: #242424;
+            padding: 15px 20px;
+            border-bottom: 1px solid #383838;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .title {
+            font-size: 20px;
+            font-weight: 500;
+        }
+
+        .controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+
+        button {
+            background: #2d2d2d;
+            border: 1px solid #383838;
+            color: #e0e0e0;
+            padding: 8px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover:not(:disabled) {
+            background: #4a9eff;
+            border-color: #4a9eff;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .upload-btn {
+            background: #4a9eff;
+        }
+
+        .page-info {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 5px 10px;
+            background: #2d2d2d;
+            border-radius: 6px;
+            border: 1px solid #383838;
+        }
+
+        #pageNum {
+            width: 40px;
+            background: transparent;
+            border: none;
+            color: #e0e0e0;
+            text-align: center;
+        }
+
+        .viewer-container {
+            flex: 1;
+            overflow: auto;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            position: relative;
+        }
+
+        #pdfCanvas {
+            max-width: 100%;
+            height: auto;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+            display: none;
+        }
+
+        #pdfCanvas.active {
+            display: block;
+        }
+
+        .welcome {
+            text-align: center;
+        }
+
+        .welcome h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+        }
+
+        .welcome p {
+            color: #a0a0a0;
+            font-size: 18px;
+        }
+
+        .zoom-controls {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .zoom-level {
+            min-width: 50px;
+            text-align: center;
+        }
+
+        .loading {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 24px;
+            display: none;
+        }
+
+        .loading.active {
+            display: block;
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <div class="header">
+        <div class="title">📚 Comic Reader</div>
+        <div class="controls">
+            <input type="file" id="fileInput" accept=".pdf">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                Cargar PDF
+            </button>
+            <button id="prevBtn" disabled>◀ Anterior</button>
+            <div class="page-info">
+                <input type="number" id="pageNum" value="1" min="1">
+                <span>/</span>
+                <span id="totalPages">0</span>
+            </div>
+            <button id="nextBtn" disabled>Siguiente ▶</button>
+            <div class="zoom-controls">
+                <button id="zoomOut">－</button>
+                <span class="zoom-level" id="zoomLevel">100%</span>
+                <button id="zoomIn">＋</button>
+                <button id="fitPage">Ajustar</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="viewer-container">
+        <div class="welcome" id="welcome">
+            <h1>📖</h1>
+            <p>Carga un archivo PDF para comenzar</p>
+        </div>
+        <div class="loading" id="loading">Cargando...</div>
+        <canvas id="pdfCanvas"></canvas>
+    </div>
+
+    <script>
+        // Configurar PDF.js
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1.0;
+
+        const canvas = document.getElementById('pdfCanvas');
+        const ctx = canvas.getContext('2d');
+        const fileInput = document.getElementById('fileInput');
+        const pageNumInput = document.getElementById('pageNum');
+        const totalPagesSpan = document.getElementById('totalPages');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        const zoomInBtn = document.getElementById('zoomIn');
+        const zoomOutBtn = document.getElementById('zoomOut');
+        const zoomLevelSpan = document.getElementById('zoomLevel');
+        const fitPageBtn = document.getElementById('fitPage');
+        const welcome = document.getElementById('welcome');
+        const loading = document.getElementById('loading');
+
+        // Renderizar página
+        function renderPage(num) {
+            pageRendering = true;
+            loading.classList.add('active');
+            
+            pdfDoc.getPage(num).then(function(page) {
+                const viewport = page.getViewport({scale: scale});
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                
+                const renderTask = page.render(renderContext);
+                
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    loading.classList.remove('active');
+                    
+                    if (pageNumPending !== null) {
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                });
+            });
+
+            pageNumInput.value = num;
+        }
+
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+
+        // Página anterior
+        function onPrevPage() {
+            if (pageNum <= 1) return;
+            pageNum--;
+            queueRenderPage(pageNum);
+            updateButtons();
+        }
+
+        // Página siguiente
+        function onNextPage() {
+            if (pageNum >= pdfDoc.numPages) return;
+            pageNum++;
+            queueRenderPage(pageNum);
+            updateButtons();
+        }
+
+        // Actualizar botones
+        function updateButtons() {
+            prevBtn.disabled = pageNum <= 1;
+            nextBtn.disabled = pageNum >= pdfDoc.numPages;
+        }
+
+        // Zoom
+        function adjustZoom(delta) {
+            scale = Math.max(0.5, Math.min(3.0, scale + delta));
+            zoomLevelSpan.textContent = Math.round(scale * 100) + '%';
+            queueRenderPage(pageNum);
+        }
+
+        // Ajustar a página
+        function fitToPage() {
+            const containerWidth = document.querySelector('.viewer-container').clientWidth - 40;
+            const containerHeight = document.querySelector('.viewer-container').clientHeight - 40;
+            
+            pdfDoc.getPage(pageNum).then(function(page) {
+                const viewport = page.getViewport({scale: 1.0});
+                const scaleX = containerWidth / viewport.width;
+                const scaleY = containerHeight / viewport.height;
+                scale = Math.min(scaleX, scaleY);
+                zoomLevelSpan.textContent = Math.round(scale * 100) + '%';
+                queueRenderPage(pageNum);
+            });
+        }
+
+        // Cargar PDF
+        fileInput.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file.type !== 'application/pdf') {
+                alert('Por favor selecciona un archivo PDF');
+                return;
+            }
+
+            const fileReader = new FileReader();
+            fileReader.onload = function() {
+                const typedarray = new Uint8Array(this.result);
+                
+                pdfjsLib.getDocument(typedarray).promise.then(function(pdf) {
+                    pdfDoc = pdf;
+                    totalPagesSpan.textContent = pdf.numPages;
+                    pageNumInput.max = pdf.numPages;
+                    pageNum = 1;
+                    
+                    welcome.style.display = 'none';
+                    canvas.classList.add('active');
+                    
+                    renderPage(pageNum);
+                    updateButtons();
+                }).catch(function(error) {
+                    alert('Error al cargar el PDF: ' + error.message);
+                    console.error(error);
+                });
+            };
+            fileReader.readAsArrayBuffer(file);
+        });
+
+        // Event listeners
+        prevBtn.addEventListener('click', onPrevPage);
+        nextBtn.addEventListener('click', onNextPage);
+        zoomInBtn.addEventListener('click', () => adjustZoom(0.2));
+        zoomOutBtn.addEventListener('click', () => adjustZoom(-0.2));
+        fitPageBtn.addEventListener('click', fitToPage);
+
+        pageNumInput.addEventListener('change', function() {
+            const num = parseInt(this.value);
+            if (num >= 1 && num <= pdfDoc.numPages) {
+                pageNum = num;
+                queueRenderPage(pageNum);
+                updateButtons();
+            }
+        });
+
+        // Atajos de teclado
+        document.addEventListener('keydown', function(e) {
+            if (!pdfDoc) return;
+            
+            switch(e.key) {
+                case 'ArrowLeft':
+                    onPrevPage();
+                    break;
+                case 'ArrowRight':
+                    onNextPage();
+                    break;
+                case '+':
+                case '=':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        adjustZoom(0.2);
+                    }
+                    break;
+                case '-':
+                    if (e.ctrlKey || e.metaKey) {
+                        e.preventDefault();
+                        adjustZoom(-0.2);
+                    }
+                    break;
+            }
+        });
+
+        console.log('Comic Reader cargado correctamente');
+    </script>
+</body>
+</html>

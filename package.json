@@ -1,0 +1,13 @@
+{
+  "name": "comic-reader-webapp",
+  "version": "1.0.0",
+  "description": "Lector moderno de historietas PDF",
+  "main": "index.html",
+  "scripts": {
+    "start": "python server.py",
+    "serve": "python -m http.server 8000"
+  },
+  "keywords": ["pdf", "comic", "reader", "viewer"],
+  "author": "",
+  "license": "MIT"
+}

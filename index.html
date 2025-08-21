@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Comic Reader - Lector de Historietas PDF</title>
+    <link rel="stylesheet" href="assets/styles/style.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar con lista de comics -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <h2>Biblioteca</h2>
+                <button id="toggleSidebar" class="toggle-btn">☰</button>
+            </div>
+            <div class="search-box">
+                <input type="text" id="searchInput" placeholder="Buscar historieta...">
+            </div>
+            <div class="comics-list" id="comicsList">
+                <!-- Lista de PDFs se cargará dinámicamente -->
+            </div>
+            <div class="upload-section">
+                <input type="file" id="fileInput" accept=".pdf" style="display: none;">
+                <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                    + Cargar PDF
+                </button>
+            </div>
+        </aside>
+
+        <!-- Área principal del lector -->
+        <main class="reader-container">
+            <!-- Barra de herramientas -->
+            <header class="toolbar">
+                <div class="toolbar-left">
+                    <button id="menuBtn" class="tool-btn">☰</button>
+                    <span class="comic-title" id="comicTitle">Selecciona una historieta</span>
+                </div>
+                <div class="toolbar-center">
+                    <button id="prevPage" class="tool-btn" disabled>◀</button>
+                    <div class="page-info">
+                        <input type="number" id="pageNum" value="1" min="1">
+                        <span>/</span>
+                        <span id="pageCount">0</span>
+                    </div>
+                    <button id="nextPage" class="tool-btn" disabled>▶</button>
+                </div>
+                <div class="toolbar-right">
+                    <button id="zoomOut" class="tool-btn">－</button>
+                    <span class="zoom-level" id="zoomLevel">100%</span>
+                    <button id="zoomIn" class="tool-btn">＋</button>
+                    <button id="fitPage" class="tool-btn" title="Ajustar página">⊡</button>
+                    <button id="fullscreen" class="tool-btn" title="Pantalla completa">⛶</button>
+                </div>
+            </header>
+
+            <!-- Canvas para renderizar PDF -->
+            <div class="canvas-container" id="canvasContainer">
+                <canvas id="pdfCanvas"></canvas>
+                <div class="welcome-message" id="welcomeMessage">
+                    <div class="welcome-content">
+                        <h1>📚 Comic Reader</h1>
+                        <p>Selecciona una historieta de la biblioteca o carga un nuevo PDF</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Controles de navegación táctil -->
+            <div class="nav-overlay">
+                <div class="nav-left" id="navLeft"></div>
+                <div class="nav-right" id="navRight"></div>
+            </div>
+        </main>
+    </div>
+
+    <script src="src/app.js"></script>
+    <script src="src/api-client.js"></script>
+</body>
+</html>
